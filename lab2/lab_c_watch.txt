@@ -1,0 +1,160 @@
+20:50:43  state=85938
+43118
+42820
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:44  state=85940
+43118
+42821
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:45  state=85942
+43120
+42821
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:46  state=85943
+43121
+42822
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:47  state=85945
+43122
+42822
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:48  state=85947
+43124
+42822
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:49  state=85948
+43124
+42823
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:50  state=85949
+43125
+42823
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:51  state=85950
+43126
+42824
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:52  state=85952
+43126
+42825
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:53  state=85952
+43126
+42825
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:54  state=85953
+43127
+42826
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:55  state=85954
+43128
+42826
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:56  state=85956
+43128
+42827
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:57  state=85957
+43129
+42827
+120
+
+
+
+
+
+0  voluntary=  involuntary=
+20:50:58  state=85958
+43130
+42828
+120
+
+
+
+
+
+0  voluntary=  involuntary=

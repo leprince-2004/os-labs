@@ -47,7 +47,21 @@ I ran states.c and watched it with watch.sh from a second terminal (output saved
 With Ctrl-Z in phase 2, watch.sh showed state T and the involuntary counter stopped growing, because a stopped process is not on the CPU. After fg the state went back to R and the program continued. With kill -STOP and kill -CONT from another terminal I saw the same: T, then back to R.
 
 ### Uninterruptible sleep (D)
-With dstate.c, the parent is in state D (wchan: <WRITE the wchan of the D process>) because it waits for the vfork child to finish. The child is in state S (wchan: <WRITE the wchan of the S process>) because it is in sleep(20). When I used kill -9 on the D process: <WRITE what you saw: died immediately, or died after about 20 seconds>.
+With dstate.c, the parent is in state D (wchan: 77465   64861 D    kernel_clone         dstate) because it waits for the vfork child to finish. The child is in state S (wchan:77466   77465 S    hrtimer_nanosleep    dstate) because it is in sleep(20). When I used kill -9 on the D process:  died immediately.
 
 ### Idle (I)
 In my Codespace, ps showed no I processes because it runs in a container and kernel threads are not visible. On a normal Linux machine they appear as kernel threads (names in square brackets in ps aux). The kernel needs its own threads to do background work that does not belong to any user program, such as writing cached data to disk, freeing memory and handling deferred device work. When they have nothing to do they sleep in state I.
+
+## Lab C: Ready is not Running
+
+**Number of CPUs:** nproc gave N = 2. I started N + 2 = 4 CPU hogs with `yes > /dev/null &`.
+
+**vmstat r column:** before the hogs, r was about. After starting the hogs, r went up to about 30s.
+
+**Running vs Ready:** r counts the processes that are Running plus the ones that are Ready (both show R in Linux). At any instant, at most N processes are Running, one per CPU. The remaining ones (about 2) are Ready: they could run, but they are waiting for a CPU. That is why r is bigger than the number of CPUs.
+
+**Pinning two hogs to the same CPU:** I used `taskset -cp 0` on two hogs. With watch.sh, the involuntary counter grew fast and the voluntary counter stayed almost flat. A hog never waits for anything, so it never gives up the CPU voluntarily. The scheduler takes the CPU away at the end of each time slice so the other hog can run. This counts the arrow Running -> Ready (timeout / preemption).
+
+**Load average:** `cat /proc/loadavg` gave 5.82 4.91 2.81. The load average is the average number of runnable (and D) processes over 1, 5 and 15 minutes. If it is above N, there are more processes wanting the CPU than there are CPUs, so some are always waiting in the Ready queue. The machine is overloaded.
+
+**Debrief:** when a laptop freezes because one app goes crazy, the run queue (Ready) is full and every other process has to wait its turn for the CPU.
