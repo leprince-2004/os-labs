@@ -1,0 +1,51 @@
+]633;E;echo "== echo \\$\\$ \\$PPID";e2a3c308-3905-46e1-a70a-11104da9c161]633;C== echo $$ $PPID
+3313 2220
+== pstree -p $$
+bash(3313)---pstree(6831)
+== pstree -p 1 (first 20 lines)
+docker-init(1)-+-containerd(355)-+-{containerd}(368)
+               |                 |-{containerd}(370)
+               |                 |-{containerd}(371)
+               |                 |-{containerd}(373)
+               |                 |-{containerd}(406)
+               |                 |-{containerd}(407)
+               |                 `-{containerd}(413)
+               |-dockerd(430)-+-{dockerd}(433)
+               |              |-{dockerd}(434)
+               |              |-{dockerd}(435)
+               |              |-{dockerd}(436)
+               |              |-{dockerd}(453)
+               |              |-{dockerd}(454)
+               |              |-{dockerd}(455)
+               |              `-{dockerd}(467)
+               |-sh(6)---sleep(6829)
+               `-sshd(186)
+== ps -eo pid,stat,comm (first 30 lines)
+    PID STAT COMMAND
+      1 Ss   docker-init
+      6 S    sh
+    186 Ss   sshd
+    355 Sl   containerd
+    430 Sl   dockerd
+   1543 Ss   sh
+   1568 Ss   sh
+   1760 Ss   sh
+   1769 Sl   MainThread
+   1794 Sl   MainThread
+   1856 Sl   MainThread
+   1868 Sl   MainThread
+   2220 Sl   MainThread
+   2259 Sl   MainThread
+   2297 Sl   copilot-runtime
+   2697 Ss   sh
+   2749 Ss   sh
+   3313 Ss   bash
+   6824 S    sh
+   6825 S    cpuUsage.sh
+   6828 S    sleep
+   6829 S    sleep
+   6834 R+   ps
+   6835 S+   head
+== state counts
+      1 R
+     25 S
