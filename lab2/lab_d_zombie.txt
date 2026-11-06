@@ -1,0 +1,6 @@
+F S   UID     PID    PPID  C PRI  NI ADDR SZ WCHAN  TTY          TIME CMD
+4 S  1000   84695    2220  0  80   0 -  3386 do_wai pts/0    00:00:00 bash
+0 S  1000   89142   84695  0  80   0 -   672 hrtime pts/0    00:00:00 zombie
+1 Z  1000   89144   89142  0  80   0 -     0 -      pts/0    00:00:00 zombie
+0 R  1000   89156   84695  0  80   0 -  2841 -      pts/0    00:00:00 ps
+4 S  1000   89157   84695  0  80   0 -  1532 pipe_r pts/0    00:00:00 tee

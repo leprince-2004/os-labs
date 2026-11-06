@@ -65,3 +65,22 @@ In my Codespace, ps showed no I processes because it runs in a container and ker
 **Load average:** `cat /proc/loadavg` gave 5.82 4.91 2.81. The load average is the average number of runnable (and D) processes over 1, 5 and 15 minutes. If it is above N, there are more processes wanting the CPU than there are CPUs, so some are always waiting in the Ready queue. The machine is overloaded.
 
 **Debrief:** when a laptop freezes because one app goes crazy, the run queue (Ready) is full and every other process has to wait its turn for the CPU.
+
+## Lab D: Birth and death
+
+### Birth: fork + exec + wait
+**State of the parent while the child runs ls:** the parent is in state S (Blocked), waiting in waitpid until the child ends. I checked it with a test copy where the child runs sleep 15: ps showed the parent in S with wchan do_wait.
+
+**Wrong file:** when I replaced "-l" by "/nothing", the parent printed "child exited with 1". Running `ls /nothing; echo $?` gave 2. They are the same, because the parent collects the exit status of the child (ls) with waitpid.
+
+**strace:** clone is the system call behind fork. The several execve lines ending in -1 ENOENT show execlp searching for ls in each directory of the PATH, one after the other, until it finds it (for example in /usr/bin). A failed execve returns -1 and the search continues.
+
+### Death: a zombie
+In `ps -l`, the child of zombie shows Z in the S column and `<defunct>` at the end. Defunct means that the process is dead but still has an entry in the process table, because its parent has not collected its exit status. In the five-state model it is the Exit (Terminated) state.
+
+`kill -9` does not remove it, because it is already dead: nothing can be killed twice. Only the parent's wait, or the parent's own exit (then init adopts and collects the zombie), removes it. A screenshot is in zombie_ps.png.
+
+### Death: an orphan
+After the parent left, the parent PID of the child changed to 91205. With `cat /proc/<that number>/comm` I found that the process docker-init adopted the orphan. In a normal Linux this is PID 1 (init/systemd) or a subreaper, which collects the child when it ends.
+
+**Why it matters:** a server that forgets to call wait fills the process table with zombies until no new process can start ("cannot fork" or "resource temporarily unavailable").
