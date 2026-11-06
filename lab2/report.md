@@ -84,3 +84,78 @@ In `ps -l`, the child of zombie shows Z in the S column and `<defunct>` at the e
 After the parent left, the parent PID of the child changed to 91205. With `cat /proc/<that number>/comm` I found that the process docker-init adopted the orphan. In a normal Linux this is PID 1 (init/systemd) or a subreaper, which collects the child when it ends.
 
 **Why it matters:** a server that forgets to call wait fills the process table with zombies until no new process can start ("cannot fork" or "resource temporarily unavailable").
+
+Lab E — Suspended Processes
+1. Starting two sleep processes
+
+I created two sleep processes in the background using:
+
+bash
+sleep 1000 > /dev/null 2>&1 &
+
+
+I executed the command twice to create two processes.
+
+I used jobs -l and ps to identify their process IDs (10839 and 108549) intial states.
+
+Both processes were initially in the S (Sleeping) state.
+
+2. Suspending and resuming processes
+
+I suspended both processes using:
+
+bash
+kill -STOP PID1 PID2
+
+
+After checking their states with ps, both processes changed to the T (Stopped) state.
+
+I then resumed them using:
+
+bash
+kill -CONT PID1 PID2
+
+
+Both processes returned to the S (Sleeping) state.
+
+Therefore, both processes returned to their original state after being resumed.
+
+3. Checking swap memory
+
+I checked the available memory using:
+
+bash
+free -h
+
+
+I also used the following command to inspect the swap usage of processes:
+
+bash
+grep VmSwap /proc/*/status 2>/dev/null | sort -k2 -n | tail -5
+
+
+This command displays the swap memory usage of processes.
+
+The VmSwap field indicates how much memory belonging to a process is currently stored in swap.
+
+Observation: [Insert the actual swap results obtained in the terminal.]
+
+4. Difference between T and Ready/Suspend
+
+In Linux, the T state means that a process has been stopped, usually by receiving a SIGSTOP signal. It cannot execute until it receives SIGCONT.
+
+The Ready/Suspend state in operating systems refers to a process that is ready to execute but has been temporarily removed from main memory.
+
+The Linux T state is generally caused by a signal sent by a user or another process, whereas the Ready/Suspend state is managed by the operating system.
+
+A process in the T state generally remains in RAM, although some of its memory pages may be swapped out.
+
+A Ready/Suspend process may have its memory moved from RAM to secondary storage.
+
+5. Cleanup
+
+I terminated the two test processes using the kill command.
+
+I then checked that the processes were no longer running.
+
+This completed the Lab E experiment.
