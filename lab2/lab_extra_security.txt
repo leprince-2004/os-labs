@@ -1,0 +1,21 @@
+    PID    PPID USER     STAT COMMAND
+    635       0 root     Ss   sh
+    591       0 vscode   Ss   sh
+    264       0 vscode   Ss   sh
+    273     264 vscode   Sl    \_ MainThread
+    361     273 vscode   Sl        \_ MainThread
+    441     361 vscode   Sl        |   \_ copilot-runtime
+    302     273 vscode   Sl        \_ MainThread
+    363     273 vscode   Sl        \_ MainThread
+    515     273 vscode   Sl        \_ MainThread
+    804     515 vscode   Ss            \_ bash
+  10125     804 vscode   R+            |   \_ ps
+  10127     804 vscode   S+            |   \_ tee
+  10126     804 vscode   S+            |   \_ head
+   8706     515 vscode   Ss+           \_ bash
+  10116     515 vscode   S             \_ cpuUsage.sh
+  10119   10116 vscode   S                 \_ sleep
+    151       0 root     Ss   sh
+    127       0 vscode   Ss   sh
+      1       0 root     Ss   sh
+  10120       1 root     S    sleep

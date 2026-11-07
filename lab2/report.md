@@ -159,3 +159,20 @@ I terminated the two test processes using the kill command.
 I then checked that the processes were no longer running.
 
 This completed the Lab E experiment.
+
+## Going further (bonus)
+
+### Build your own shell (minish.c)
+minish.c is a loop: read a line, split it into words, fork, execvp in the child, waitpid in the parent. In the first version, `cd /tmp` failed with "cd: No such file or directory" and exit code 127, and `pwd` still showed my old folder /workspaces/os-labs/lab2. The reason is that cd is not a program: the working directory is a property of each process, so a child that changes directory only changes its own and then dies. The shell itself must call chdir(), so cd has to be a built-in. In the final version I added cd as a built-in with chdir(), and after `cd /tmp`, `pwd` showed /tmp. In my environment, `cd` without an argument printed an error, because it depends on the HOME variable of the environment.
+
+### Debuggers (gdb)
+With `break burn` and `run`, the process stopped at the breakpoint and ps showed state t (lowercase), with wchan ptrace_stop. This is the "tracing stop" state. The debugger needs its own stopped state because an ordinary T stop (SIGSTOP) can be undone by anyone who sends SIGCONT. A traced process must stay frozen under the control of the debugger while it reads memory and registers, and only the debugger can resume it.
+
+### Security
+In `ps -eo pid,ppid,user,stat,comm --forest`, only four processes were running as root: three sh (including PID 1) and one sleep. All four were in state S, because they are sleeping and waiting for events. All the other processes (bash, MainThread, copilot-runtime...) ran as the normal user vscode. A web server should not run as root: if an attacker finds a bug in it, they get the privileges of the process, and as root they could read any file, change the system and install programs. As a normal user with few rights the damage stays limited (principle of least privilege).
+
+### Networking
+`nc -l 5000` waits in state S (Blocked), with wchan inet_csk_accept, the kernel function that waits for a client to connect on a listening socket. It is woken up by an incoming connection: when a client runs `nc localhost 5000`, the kernel marks the listening socket as ready and wakes the process. When I typed "hello" in the client, it appeared in the server terminal.
+
+### Data people
+`time (for i in $(seq 1000); do /bin/true; done)` took 1.407 s (real) for 1000 processes, so my machine creates about 711 processes per second. Most of the time was spent in the kernel (sys 0.997 s against user 0.385 s), because every process needs a fork, an exec and a wait. A data job that starts one process per file is slow because each file pays this cost plus the loading of the program. For thousands or millions of files this overhead dominates the real work. It is better to give many files to a single process, or to use threads or a loop inside one program.
