@@ -144,3 +144,35 @@ SigIgn is a bit mask of the ignored signals: bit 0 is signal 1, bit 1 is signal 
 **How to stop it:** `kill -9 <pid>` (SIGKILL) worked. The terminal printed "Killed" and `echo $?` showed 137 (128 + 9). SIGKILL cannot be caught or ignored, so it is the way that always works. Looking at the mask, only SIGINT and SIGTERM are ignored, so other signals whose default action is to end the process could also end it, but only SIGKILL is guaranteed.
 
 **What the program loses by being stopped that way:** a program that handles SIGTERM (like catch.c) can clean up before it exits: save its work, flush its buffers, close files, delete temporary files, release locks and tell other programs that it is leaving. With SIGKILL the kernel destroys the process at once, so it gets no chance to save its work or clean up, and the exit code is 137 instead of a chosen code such as 0. This is why SIGTERM, the polite request, should always be tried first, and kill -9 only as the last resort.
+
+## Going further (bonus)
+
+### For security: why only root can lower nice values or start real-time processes
+A normal user can only make their own processes nicer (raise the nice number), which only hurts their own programs. If any user could lower nice values or start real-time (SCHED_FIFO) processes, a malicious or careless user on a shared server could give their own programs the best priority and starve the processes of all the other users. A real-time process always runs before every normal process, so a single real-time busy loop could make the whole machine stop answering (a denial of service), even for the administrator's own terminal. This would also make the idea of a fair share meaningless. That is why only root may do it.
+
+### For data people: nice 19 for batch jobs
+I measured `time ls -R /usr > /dev/null` (second run each time) with N + 1 = 3 spin processes running on my 2 CPUs:
+
+| Situation | real | user | sys |
+| --- | --- | --- | --- |
+| no hogs | 0.031 s | 0.010 s | 0.019 s |
+| hogs at nice 19 | 0.044 s | 0.019 s | 0.024 s |
+| hogs at nice 0 | 0.108 s | 0.017 s | 0.026 s |
+
+With the hogs at nice 0, ls was about 3.5 times slower than with no hogs (0.108 s against 0.031 s), because it had to share the CPU equally with them. With the hogs at nice 19, ls was only about 1.4 times slower (0.044 s), because a nice 19 process has a tiny weight (15 against 1024 for nice 0), so the scheduler gives almost all the CPU to my normal programs. user and sys are about the same in the three cases: ls did the same work, only the waiting time changed. This is why data engineers start long batch jobs with `nice -n 19`: the job uses all the CPU that nobody else needs, but the laptop stays responsive.
+
+### For debuggers: threads with top -H and pidstat
+Firefox or Chrome would run on my own computer and not inside the Codespace, so I wrote threads.c, a program with 3 threads: one named "busy" that burns the CPU, and "sleepy1" and "sleepy2" that sleep.
+- `top -H -b -n 1 -p <pid>` shows one line per thread. The busy thread used 98.8% of a CPU, while the main thread and the two sleepy threads used 0.0%. The process total (about 99%) would hide which thread is responsible, the -H option shows it.
+- `ps -L -o pid,tid,pcpu,stat,comm -p <pid>` confirmed it: busy was in state R (98.4%), the others in state S.
+- `pidstat -t -p <pid> 1 3` gave an average of 97% usr for the busy thread, 0% for the others, and 3% in the %wait column. %wait is the time the busy thread spent in the Ready state waiting for a CPU (other processes of the Codespace also needed the CPU), so it ties in with the Ready state from Session 2.
+
+### For networking: ping with a busy CPU
+Pinging 8.8.8.8 did not work in the Codespace (100% packet loss: outgoing traffic is blocked), so I pinged 127.0.0.1 (my own machine) with 20 packets:
+
+| Situation | min / avg / max |
+| --- | --- |
+| no hogs | 0.035 / 0.054 / 0.084 ms |
+| N + 1 = 3 yes hogs | 0.041 / 0.058 / 0.064 ms |
+
+The times are almost the same, so a busy CPU hardly slows the network. The network packets are handled by the kernel, which runs before the user processes. The ping process itself is mostly asleep (it is I/O-bound), so when a reply arrives the fair scheduler wakes it up quickly: a process that has used little CPU is favoured against the CPU hogs that have used a lot.
