@@ -76,3 +76,29 @@ The real time is about 3.6 times larger with the hogs, while user is the same. u
 - after Ctrl-Z: state T (Stopped), and `jobs` showed it as Stopped. Ctrl-Z sends SIGTSTP;
 - after `bg`: state R (running again, but in the background, so no +). bg sends SIGCONT.
 After `fg` it runs in the foreground again. I cleaned up with `pkill yes`.
+
+## Lab C: Measure fairness with nice
+
+spin.c counts how many units of work a process gets done each second. I pinned it to CPU 0 with `taskset -c 0` so that the tests compete for the same CPU. The first second of every run is incomplete, so I ignore it and use the average of the other seconds (the script ratio.sh does this).
+
+**Alone:** spin alone on CPU 0 did about 4550 units of work per second (4723, 4488, 4509 and 4480 in seconds 2 to 5).
+
+**Two equal processes on one CPU:** both at nice 0, they did about 2322 and 2287 units per second, so each got about half of the work of the alone run (4550 / 2 = 2275), and the ratio was 1.02. The scheduler shares the CPU fairly between equal processes.
+
+**Unequal processes (nice):**
+
+| Nice values | Work ratio I measured | Predicted (1.25 per step) |
+| --- | --- | --- |
+| 0 vs 0 | 1.02 | 1 |
+| 0 vs 5 | 3.12 | about 3 |
+| 0 vs 10 | 9.71 | about 9 to 10 |
+| 0 vs 19 | 72.22 | about 70 (CPU-time weights 1024 vs 15) |
+
+The measured ratios are very close to the predictions. The kernel gives each nice value a weight (nice 0 = 1024, nice 5 = 335, nice 10 = 110, nice 19 = 15) and shares the CPU in proportion to the weights. For example 1024 / 110 is about 9.3, and I measured 9.71. At nice 19 the process got only about 64 units per second, against about 4600 for the other one.
+
+**The referee again:** `nice -n -5 ./spin 3` printed "nice: cannot set niceness: Permission denied". The program still ran, but with the normal priority, because nice could not lower the value. With `sudo nice -n -5 ./spin 3` it worked, because root is allowed to do it. A normal user must not be allowed to give a process a better priority: on a shared computer anybody could give their programs the best priority and starve everyone else's. Only root can lower nice values, and normal users can only make their own processes nicer.
+
+**Fair is not equal:** I pinned two spin processes at nice 0 on CPU 0 and watched one of them with watch.sh. The state was R in every line, the voluntary counter stayed at 0, and the involuntary counter grew by about 260 per second (265, 532, 783, ..., 4052 after 14 seconds).
+- involuntary stands for the arrow Running -> Ready: the scheduler takes the CPU away from the process when its time slice is over, to give it to the other process. This happens all the time here because two processes want the same CPU.
+- voluntary stands for the arrow Running -> Blocked: the process gives up the CPU by itself to wait for something. It never happens here, because spin never waits, it only computes.
+The scheduler is fair (each process gets about half of the CPU), but it is not equal in the sense that every process gets the same number of turns without being interrupted: it constantly interrupts both.
