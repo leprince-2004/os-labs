@@ -102,3 +102,28 @@ The measured ratios are very close to the predictions. The kernel gives each nic
 - involuntary stands for the arrow Running -> Ready: the scheduler takes the CPU away from the process when its time slice is over, to give it to the other process. This happens all the time here because two processes want the same CPU.
 - voluntary stands for the arrow Running -> Blocked: the process gives up the CPU by itself to wait for something. It never happens here, because spin never waits, it only computes.
 The scheduler is fair (each process gets about half of the CPU), but it is not equal in the sense that every process gets the same number of turns without being interrupted: it constantly interrupts both.
+
+## Lab D: Signals
+
+catch.c installs a handler for SIGINT and SIGTERM, and tries to install one for SIGKILL.
+
+**Ctrl-C three times:** each time the program printed "Nice try! (SIGINT)" and did not stop. The handler replaces the default action of SIGINT (end the process), so the process caught the signal and kept running. The perror line printed at the start says "cannot catch SIGKILL: Invalid argument". It means that signal(SIGKILL, ...) returned SIG_ERR: the kernel refuses to let a program install a handler for SIGKILL.
+
+**kill -INT and kill -TERM from another terminal:**
+- `kill -INT <pid>` printed "Nice try! (SIGINT)" again, and the program kept running, exactly like Ctrl-C.
+- `kill -TERM <pid>` printed "Asked politely (SIGTERM), cleaning up..." and the program ended. `echo $?` showed 0, because the SIGTERM handler calls _exit(0): the program chose its own exit code.
+
+**kill -KILL:** the handler did not run (no message), the shell only printed "Killed". `echo $?` showed 137. The shell computes the exit code of a process killed by a signal as 128 + the signal number: SIGKILL is signal 9, so 128 + 9 = 137 (and Ctrl-C on a program without a handler would give 128 + 2 = 130).
+
+**kill -STOP and kill -CONT:** after `kill -STOP <pid>`, `ps -o pid,stat,comm -p <pid>` showed state T (Stopped), and the shell printed "[1]+ Stopped ./catch". After `kill -CONT <pid>` the state was S again (sleeping in pause(), waiting for a signal), so the process continued. I ended it with `kill -TERM`.
+
+**Why the kernel keeps SIGKILL and SIGSTOP for itself:** if a program could catch or ignore them, a buggy or malicious program could make itself impossible to stop or kill (like deaf.c does with SIGINT and SIGTERM). These two signals are the kernel's guarantee that the administrator and the system can always stop a process or end it, whatever the program does.
+
+**kill -l:** `kill -l SEGV CHLD PIPE` gave 11, 17 and 13.
+- SIGSEGV (11) is sent by the kernel to a process that accesses memory it is not allowed to use or that does not exist (a segmentation fault). The default action ends the process and makes a core dump.
+- SIGCHLD (17) is sent to a parent when one of its children ends (or stops). It is ignored by default. A parent can catch it to call wait and collect its children, so that they do not stay zombies.
+- SIGPIPE (13) is sent to a process that writes into a pipe or a socket that nobody reads any more. The default action ends the process. For example in `yes | head -1`, yes receives SIGPIPE when head ends.
+
+**write and not printf in the handler:** printf is not async-signal-safe (see man 7 signal-safety). It uses internal buffers and locks. If a signal arrives while the main program is in the middle of a printf, and the handler also calls printf, the second call can wait forever for the lock held by the first one (deadlock) or corrupt the buffer. write is a simple system call, and it is on the list of functions that are safe inside a signal handler.
+
+**Debrief:** when Windows shows "Not responding", the CPU is not frozen. The program stopped answering the messages the system sends to it, usually because it is busy or blocked. The OS then offers "End task", which is the equivalent of SIGKILL.
