@@ -53,3 +53,26 @@ Turnaround = finish time - arrival time. Response = first run time - arrival tim
 **Same result for FIFO and SJF:** for the lengths 10,20,30, both give an average response of 13.33 and an average turnaround of 33.33. This happens when the jobs arrive already sorted from the shortest to the longest, so the FIFO order is the same as the SJF order.
 
 **Round Robin in sched.py:** a job whose slice ran out and still has work left (`j["left"] > 0`) is put back at the end of the queue with `queue.append(j)`.
+
+## Lab B: Overload your CPU
+
+**Number of CPUs:** nproc gave N = 2. I started N + 1 = 3 CPU hogs with `yes > /dev/null &`. A screenshot of htop with the hogs running is in htop.png.
+
+**htop:** the three yes processes got about 69.3%, 66.0% and 55.4% of a CPU, a total of about 190.7%. The total is about N x 100% (200%) and not more, because the machine has only 2 CPUs and a CPU cannot give more than 100%. The 3 hogs share the 2 x 100% between them, and htop and other small processes use the rest.
+
+**vmstat 1 5:** the first line is an average since boot, so I ignore it. The next lines showed r = 6, 8, 3 and 5. The r column counts the processes that want the CPU (Running + Ready). Only N = 2 can be Running at the same time, so r - 2 processes are Ready but not Running: between 1 and 6, about 3 or 4 on average. The minimum expected value was N + 1 - N = 1, and r was higher because other processes of the Codespace also wanted the CPU. The CPU columns showed us 25%, sy 75% and id 0%, so the CPUs were fully busy (the hogs spend most of their time in system calls, writing to /dev/null).
+
+**time ls -R /usr > /dev/null:**
+
+| Situation | real | user | sys |
+| --- | --- | --- | --- |
+| with the hogs | 0.104 s | 0.013 s | 0.024 s |
+| without the hogs (after pkill yes) | 0.029 s | 0.013 s | 0.014 s |
+
+The real time is about 3.6 times larger with the hogs, while user is the same. user is the CPU time that ls really used, and it did the same work. real is the elapsed time on the clock, and it also includes the time ls spent in the Ready queue waiting for a CPU behind the hogs.
+
+**Ctrl-Z, jobs, bg:** I started `yes > /dev/null` in the foreground and checked it with `ps -o pid,stat,comm`:
+- running in the foreground: state R+ (the + means it belongs to the foreground process group of the terminal);
+- after Ctrl-Z: state T (Stopped), and `jobs` showed it as Stopped. Ctrl-Z sends SIGTSTP;
+- after `bg`: state R (running again, but in the background, so no +). bg sends SIGCONT.
+After `fg` it runs in the foreground again. I cleaned up with `pkill yes`.
